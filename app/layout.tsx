@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
-import { Button } from '@/components/ui/button'
-import { ModeToggle } from '@/components/mode-toggle'
+import { Header } from '@/components/header'
 import './globals.css'
 
 const inter = Inter({
@@ -30,16 +29,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           enableSystem
           disableTransitionOnChange
         >
-          <header className="shrink-0 border-b bg-background">
-            <div className="flex h-14 w-full items-center justify-between px-4">
-              <span className="font-heading text-lg font-bold">DevRoadmap</span>
-
-              <div className="flex items-center space-x-2">
-                <ModeToggle />
-                <Button type="button">Log in</Button>
-              </div>
-            </div>
-          </header>
+          <Header />
           {children}
         </ThemeProvider>
       </body>
