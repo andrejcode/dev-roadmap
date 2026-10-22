@@ -1,14 +1,102 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import Home from './page'
 
+afterEach(cleanup)
+
 describe('Home', () => {
-  it('renders the product heading', () => {
-    render(<Home />)
+  it('renders the roadmap title and description as page content', () => {
+    const { container } = render(<Home />)
+    const view = within(container)
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Welcome to DevRoadmap' }),
+      view.getByRole('heading', { level: 1, name: 'Frontend Development' }),
     ).toBeInTheDocument()
+    expect(view.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(
+      view.getByText(
+        'Learn how to build modern web applications using HTML, CSS, JavaScript, and React.',
+      ),
+    ).toBeInTheDocument()
+    expect(container.querySelector('header')).not.toBeInTheDocument()
+    expect(view.getByRole('main')).not.toHaveClass('p-4', 'h-svh')
+  })
+
+  it('renders the roadmap nodes and connection types', () => {
+    const { container } = render(<Home />)
+    const view = within(container)
+
+    for (const node of [
+      'HTML',
+      'CSS',
+      'JavaScript',
+      'TypeScript',
+      'React',
+      'Next.js',
+      'React Testing',
+      'Next.js Testing',
+      'Frontend Completion',
+    ]) {
+      expect(view.getByRole('heading', { level: 2, name: node })).toBeVisible()
+    }
+
+    expect(
+      container.querySelectorAll('[data-connection-type="required"]'),
+    ).toHaveLength(4)
+    expect(
+      container.querySelectorAll('[data-connection-type="optional"]'),
+    ).toHaveLength(4)
+
+    const react = view.getByRole('heading', { level: 2, name: 'React' })
+    const testing = view.getByRole('heading', {
+      level: 2,
+      name: 'React Testing',
+    })
+    const reactNode = react.closest('article')!
+    const testingNode = testing.closest('article')!
+
+    expect(Number.parseFloat(testingNode.style.left)).toBeLessThan(
+      Number.parseFloat(reactNode.style.left),
+    )
+    expect(testingNode.style.top).toBe(reactNode.style.top)
+    expect(container.querySelectorAll('[stroke-dasharray="7 7"]')).toHaveLength(
+      4,
+    )
+  })
+
+  it('opens node details and closes them with the close button or Escape', async () => {
+    render(<Home />)
+
+    const htmlTrigger = screen.getByRole('button', {
+      name: 'HTML',
+    })
+    fireEvent.click(htmlTrigger)
+
+    const dialog = await screen.findByRole('dialog', { name: 'HTML' })
+    expect(dialog).toHaveAccessibleDescription(
+      'Learn the basics of HTML, the standard markup language for creating web pages.',
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'React' }))
+    const reactDialog = await screen.findByRole('dialog', { name: 'React' })
+    expect(reactDialog).toHaveAccessibleDescription(
+      'Learn the basics of React, a popular JavaScript library for building user interfaces.',
+    )
+    fireEvent.keyDown(reactDialog, { key: 'Escape', code: 'Escape' })
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
   })
 })
