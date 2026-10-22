@@ -23,7 +23,7 @@ export function RoadmapNodeCard({ node }: { node: PositionedNode }) {
           height: NODE_HEIGHT,
         }}
       >
-        <h2 className="size-full min-w-0 text-lg leading-tight font-medium [overflow-wrap:anywhere]">
+        <h2 className="size-full min-w-0 text-lg leading-tight font-medium wrap-anywhere">
           <SheetTrigger
             title={node.title}
             className="flex size-full cursor-pointer items-center justify-center overflow-hidden rounded-lg px-4 py-2 text-center transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
@@ -36,7 +36,7 @@ export function RoadmapNodeCard({ node }: { node: PositionedNode }) {
       </article>
       <SheetContent
         side="right"
-        className="overflow-y-auto motion-reduce:transition-none data-[side=right]:w-full data-[side=right]:sm:max-w-none data-[side=right]:lg:w-[28rem]"
+        className="overflow-y-auto motion-reduce:transition-none data-[side=right]:w-full data-[side=right]:sm:max-w-none data-[side=right]:lg:w-md"
       >
         <SheetHeader className="gap-3 px-6 pt-6 pr-14 wrap-anywhere">
           <SheetTitle>{node.title}</SheetTitle>
