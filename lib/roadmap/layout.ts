@@ -21,6 +21,13 @@ const orientationOffsets: Record<Orientation, Position> = {
   left: { column: -1, row: 0 },
 }
 
+const oppositeSides: Record<Orientation, Orientation> = {
+  up: 'down',
+  right: 'left',
+  down: 'up',
+  left: 'right',
+}
+
 function getConnections(node: RoadmapNode) {
   const connections: Array<RoadmapConnection & { type: ConnectionType }> = []
 
@@ -46,40 +53,88 @@ function getConnections(node: RoadmapNode) {
 
 export function layoutRoadmap(definition: RoadmapDefinition) {
   const nodesById = new Map(definition.nodes.map((node) => [node.id, node]))
+  if (nodesById.size !== definition.nodes.length) {
+    throw new Error('Roadmap has duplicate node IDs.')
+  }
+  if (!nodesById.has(definition.entryNodeId)) {
+    throw new Error(`Entry node "${definition.entryNodeId}" is missing.`)
+  }
+
+  const connectionsById = new Map(
+    definition.nodes.map((node) => [node.id, getConnections(node)]),
+  )
+  const incomingConnections = new Map<
+    string,
+    { sourceId: string; side: Orientation }
+  >()
+
+  for (const node of definition.nodes) {
+    for (const connection of connectionsById.get(node.id)!) {
+      if (!nodesById.has(connection.id)) {
+        throw new Error(
+          `Node "${node.id}" points to missing node "${connection.id}".`,
+        )
+      }
+      if (connection.id === definition.entryNodeId) {
+        throw new Error(
+          `Entry node "${connection.id}" has an invalid incoming connection from "${node.id}". The entry cannot have incoming connections.`,
+        )
+      }
+      const incoming = incomingConnections.get(connection.id)
+      if (incoming) {
+        const sources = [incoming.sourceId, node.id].sort()
+        throw new Error(
+          `Node "${connection.id}" has multiple incoming connections from "${sources[0]}" and "${sources[1]}". Only one incoming connection is allowed.`,
+        )
+      }
+      incomingConnections.set(connection.id, {
+        sourceId: node.id,
+        side: oppositeSides[connection.orientation],
+      })
+    }
+  }
+
+  for (const node of definition.nodes) {
+    const connections = getConnections(node)
+    const incomingSide = incomingConnections.get(node.id)?.side
+    const occupiedSides = new Set(incomingSide ? [incomingSide] : [])
+
+    if (connections.filter(({ type }) => type === 'optional').length > 3) {
+      throw new Error(
+        `Node "${node.id}" has more than three optional connections.`,
+      )
+    }
+    for (const connection of connections) {
+      if (occupiedSides.has(connection.orientation)) {
+        throw new Error(
+          `Node "${node.id}" has multiple connections on its "${connection.orientation}" side.`,
+        )
+      }
+      occupiedSides.add(connection.orientation)
+    }
+  }
+
+  const traversal = [definition.entryNodeId]
+  for (let index = 0; index < traversal.length; index += 1) {
+    for (const connection of connectionsById.get(traversal[index])!) {
+      traversal.push(connection.id)
+    }
+  }
+  if (traversal.length !== definition.nodes.length) {
+    throw new Error('All roadmap nodes must be reachable from the entry node.')
+  }
+
   const positions = new Map<string, Position>([
     [definition.entryNodeId, { column: 0, row: 0 }],
   ])
-  const queue = [definition.entryNodeId]
-
-  while (queue.length > 0) {
-    const nodeId = queue.shift()
-    const node = nodeId ? nodesById.get(nodeId) : undefined
-    const position = nodeId ? positions.get(nodeId) : undefined
-
-    if (!node || !position) {
-      continue
-    }
-
-    const connections = getConnections(node)
-    const orientations = new Set(
-      connections.map(({ orientation }) => orientation),
-    )
-
-    if (orientations.size !== connections.length || connections.length > 4) {
-      throw new Error(`Node "${node.id}" has conflicting connections.`)
-    }
-
-    for (const connection of connections) {
-      if (!nodesById.has(connection.id) || positions.has(connection.id)) {
-        continue
-      }
-
+  for (const nodeId of traversal) {
+    const position = positions.get(nodeId)!
+    for (const connection of connectionsById.get(nodeId)!) {
       const offset = orientationOffsets[connection.orientation]
       positions.set(connection.id, {
         column: position.column + offset.column,
         row: position.row + offset.row,
       })
-      queue.push(connection.id)
     }
   }
 

@@ -32,7 +32,17 @@ export const frontendRoadmap = {
           id: 'javascript',
           orientation: 'down',
         },
+        optional: {
+          id: 'scss',
+          orientation: 'right',
+        },
       },
+    },
+    {
+      id: 'scss',
+      title: 'SCSS',
+      description:
+        'Learn the basics of SCSS, a CSS preprocessor that adds features like variables, nested rules, and mixins.',
     },
     {
       id: 'javascript',
@@ -84,11 +94,22 @@ export const frontendRoadmap = {
       description:
         'Learn the basics of Next.js, a React framework for building server-side rendered and static web applications.',
       next: {
-        optional: {
-          id: 'nextjs-testing',
-          orientation: 'right',
-        },
+        optional: [
+          {
+            id: 'nextjs-testing',
+            orientation: 'right',
+          },
+          {
+            id: 'auth',
+            orientation: 'up',
+          },
+        ],
       },
+    },
+    {
+      id: 'auth',
+      title: 'Auth',
+      description: 'Authentication and authorization in Next.js applications.',
     },
     {
       id: 'react-testing',

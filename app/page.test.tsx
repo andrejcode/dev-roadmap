@@ -37,10 +37,12 @@ describe('Home', () => {
     for (const node of [
       'HTML',
       'CSS',
+      'SCSS',
       'JavaScript',
       'TypeScript',
       'React',
       'Next.js',
+      'Auth',
       'React Testing',
       'Next.js Testing',
       'Frontend Completion',
@@ -53,7 +55,7 @@ describe('Home', () => {
     ).toHaveLength(4)
     expect(
       container.querySelectorAll('[data-connection-type="optional"]'),
-    ).toHaveLength(4)
+    ).toHaveLength(6)
 
     const react = view.getByRole('heading', { level: 2, name: 'React' })
     const testing = view.getByRole('heading', {
@@ -68,7 +70,7 @@ describe('Home', () => {
     )
     expect(testingNode.style.top).toBe(reactNode.style.top)
     expect(container.querySelectorAll('[stroke-dasharray="7 7"]')).toHaveLength(
-      4,
+      6,
     )
   })
 
