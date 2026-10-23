@@ -10,5 +10,15 @@ export default defineConfig({
     environment: 'jsdom',
     exclude: ['e2e/**', 'node_modules/**'],
     setupFiles: ['./vitest.setup.ts'],
+    coverage: {
+      include: ['lib/roadmap/layout.ts'],
+      reporter: ['text', 'html', 'lcov'],
+      thresholds: {
+        statements: 98,
+        branches: 95,
+        functions: 100,
+        lines: 98,
+      },
+    },
   },
 })

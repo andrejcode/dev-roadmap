@@ -14,11 +14,11 @@ const COLUMN_GAP = 80
 const ROW_GAP = 64
 const CANVAS_PADDING = 40
 
-const orientationOffsets: Record<Orientation, Position> = {
-  up: { column: 0, row: -1 },
-  right: { column: 1, row: 0 },
-  down: { column: 0, row: 1 },
-  left: { column: -1, row: 0 },
+type Bounds = {
+  minimumColumn: number
+  maximumColumn: number
+  minimumRow: number
+  maximumRow: number
 }
 
 const oppositeSides: Record<Orientation, Orientation> = {
@@ -124,20 +124,101 @@ export function layoutRoadmap(definition: RoadmapDefinition) {
     throw new Error('All roadmap nodes must be reachable from the entry node.')
   }
 
-  const positions = new Map<string, Position>([
-    [definition.entryNodeId, { column: 0, row: 0 }],
-  ])
-  for (const nodeId of traversal) {
-    const position = positions.get(nodeId)!
+  const branches = new Map<
+    string,
+    { positions: Map<string, Position>; bounds: Bounds }
+  >()
+  for (const nodeId of traversal.toReversed()) {
+    const positions = new Map<string, Position>([
+      [nodeId, { column: 0, row: 0 }],
+    ])
+    const occupiedBounds: Bounds[] = [
+      { minimumColumn: 0, maximumColumn: 0, minimumRow: 0, maximumRow: 0 },
+    ]
+
     for (const connection of connectionsById.get(nodeId)!) {
-      const offset = orientationOffsets[connection.orientation]
-      positions.set(connection.id, {
-        column: position.column + offset.column,
-        row: position.row + offset.row,
+      const child = branches.get(connection.id)!
+      const offset = { column: 0, row: 0 }
+
+      for (const occupied of occupiedBounds) {
+        const sharesColumns =
+          child.bounds.minimumColumn <= occupied.maximumColumn &&
+          child.bounds.maximumColumn >= occupied.minimumColumn
+        const sharesRows =
+          child.bounds.minimumRow <= occupied.maximumRow &&
+          child.bounds.maximumRow >= occupied.minimumRow
+
+        switch (connection.orientation) {
+          case 'up':
+            if (sharesColumns) {
+              offset.row = Math.min(
+                offset.row,
+                occupied.minimumRow - child.bounds.maximumRow - 1,
+              )
+            }
+            break
+          case 'right':
+            if (sharesRows) {
+              offset.column = Math.max(
+                offset.column,
+                occupied.maximumColumn - child.bounds.minimumColumn + 1,
+              )
+            }
+            break
+          case 'down':
+            if (sharesColumns) {
+              offset.row = Math.max(
+                offset.row,
+                occupied.maximumRow - child.bounds.minimumRow + 1,
+              )
+            }
+            break
+          case 'left':
+            if (sharesRows) {
+              offset.column = Math.min(
+                offset.column,
+                occupied.minimumColumn - child.bounds.maximumColumn - 1,
+              )
+            }
+            break
+        }
+      }
+
+      for (const [childId, position] of child.positions) {
+        positions.set(childId, {
+          column: position.column + offset.column,
+          row: position.row + offset.row,
+        })
+      }
+      occupiedBounds.push({
+        minimumColumn: child.bounds.minimumColumn + offset.column,
+        maximumColumn: child.bounds.maximumColumn + offset.column,
+        minimumRow: child.bounds.minimumRow + offset.row,
+        maximumRow: child.bounds.maximumRow + offset.row,
       })
+      branches.delete(connection.id)
     }
+
+    branches.set(nodeId, {
+      positions,
+      bounds: {
+        minimumColumn: Math.min(
+          ...occupiedBounds.map((bounds) => bounds.minimumColumn),
+        ),
+        maximumColumn: Math.max(
+          ...occupiedBounds.map((bounds) => bounds.maximumColumn),
+        ),
+        minimumRow: Math.min(
+          ...occupiedBounds.map((bounds) => bounds.minimumRow),
+        ),
+        maximumRow: Math.max(
+          ...occupiedBounds.map((bounds) => bounds.maximumRow),
+        ),
+      },
+    })
   }
 
+  const { positions } = branches.get(definition.entryNodeId)!
   const placedPositions = [...positions.values()]
   const minimumColumn = Math.min(...placedPositions.map(({ column }) => column))
   const maximumColumn = Math.max(...placedPositions.map(({ column }) => column))
@@ -175,7 +256,7 @@ export function layoutRoadmap(definition: RoadmapDefinition) {
 
       return [
         {
-          id: `${source.id}-${target.id}`,
+          id: JSON.stringify([source.id, target.id]),
           type: connection.type,
           orientation: connection.orientation,
           source,

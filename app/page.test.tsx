@@ -39,11 +39,13 @@ describe('Home', () => {
       'CSS',
       'SCSS',
       'JavaScript',
+      'JavaScript Testing',
       'TypeScript',
       'React',
       'Next.js',
       'Auth',
       'React Testing',
+      'Testing Fundamentals',
       'Next.js Testing',
       'Frontend Completion',
     ]) {
@@ -52,10 +54,10 @@ describe('Home', () => {
 
     expect(
       container.querySelectorAll('[data-connection-type="required"]'),
-    ).toHaveLength(4)
+    ).toHaveLength(5)
     expect(
       container.querySelectorAll('[data-connection-type="optional"]'),
-    ).toHaveLength(6)
+    ).toHaveLength(7)
 
     const react = view.getByRole('heading', { level: 2, name: 'React' })
     const testing = view.getByRole('heading', {
@@ -69,8 +71,28 @@ describe('Home', () => {
       Number.parseFloat(reactNode.style.left),
     )
     expect(testingNode.style.top).toBe(reactNode.style.top)
+
+    const javascriptNode = view
+      .getByRole('heading', { level: 2, name: 'JavaScript' })
+      .closest('article')!
+    const javascriptTestingNode = view
+      .getByRole('heading', { level: 2, name: 'JavaScript Testing' })
+      .closest('article')!
+    const fundamentalsNode = view
+      .getByRole('heading', { level: 2, name: 'Testing Fundamentals' })
+      .closest('article')!
+
+    expect(Number.parseFloat(javascriptTestingNode.style.left)).toBeLessThan(
+      Number.parseFloat(javascriptNode.style.left),
+    )
+    expect(javascriptTestingNode.style.top).toBe(javascriptNode.style.top)
+    expect(Number.parseFloat(fundamentalsNode.style.top)).toBeLessThan(
+      Number.parseFloat(testingNode.style.top),
+    )
+    expect(fundamentalsNode.style.left).toBe(testingNode.style.left)
+
     expect(container.querySelectorAll('[stroke-dasharray="7 7"]')).toHaveLength(
-      6,
+      7,
     )
   })
 

@@ -54,11 +54,23 @@ export const frontendRoadmap = {
           id: 'react',
           orientation: 'down',
         },
-        optional: {
-          id: 'typescript',
-          orientation: 'right',
-        },
+        optional: [
+          {
+            id: 'typescript',
+            orientation: 'right',
+          },
+          {
+            id: 'javascript-testing',
+            orientation: 'left',
+          },
+        ],
       },
+    },
+    {
+      id: 'javascript-testing',
+      title: 'JavaScript Testing',
+      description:
+        'Test JavaScript functions and application logic with unit tests.',
     },
     {
       id: 'typescript',
@@ -94,14 +106,14 @@ export const frontendRoadmap = {
       description:
         'Learn the basics of Next.js, a React framework for building server-side rendered and static web applications.',
       next: {
+        required: {
+          id: 'auth',
+          orientation: 'up',
+        },
         optional: [
           {
             id: 'nextjs-testing',
             orientation: 'right',
-          },
-          {
-            id: 'auth',
-            orientation: 'up',
           },
         ],
       },
@@ -116,6 +128,18 @@ export const frontendRoadmap = {
       title: 'React Testing',
       description:
         'Test React components and user interactions with React Testing Library.',
+      next: {
+        optional: {
+          id: 'testing-fundamentals',
+          orientation: 'up',
+        },
+      },
+    },
+    {
+      id: 'testing-fundamentals',
+      title: 'Testing Fundamentals',
+      description:
+        'Learn test assertions, test cases, and the fundamentals of reliable automated testing.',
     },
     {
       id: 'nextjs-testing',
