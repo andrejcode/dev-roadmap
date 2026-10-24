@@ -283,10 +283,112 @@ for (const viewport of [
       const dialog = page.getByRole('dialog', { name: node.title, exact: true })
       await expect(dialog).toBeVisible()
       await expect(dialog).toHaveAccessibleDescription(node.description)
+      await expect(
+        dialog.getByRole('heading', { name: 'Learning goals', exact: true }),
+      ).toBeVisible()
+      await expect(
+        dialog.getByRole('heading', { name: 'Try it', exact: true }),
+      ).toBeVisible()
+      await expect(
+        dialog.getByRole('heading', { name: 'Read next', exact: true }),
+      ).toBeVisible()
+      await expect(dialog.locator('[contenteditable="true"]')).toHaveCount(0)
+      expect(
+        await dialog.evaluate(
+          (element) => element.scrollWidth <= element.clientWidth,
+        ),
+      ).toBe(true)
       await page.keyboard.press('Escape')
       await expect(dialog).toBeHidden()
       await expect(trigger).toBeFocused()
     }
+  })
+
+  test(`confirms learning resources before navigation at ${viewport.width}px`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    await page.setViewportSize(viewport)
+    await context.route('https://developer.mozilla.org/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<!doctype html><title>Learning resource fixture</title>',
+      }),
+    )
+    await page.goto('/')
+    await page.getByRole('button', { name: 'HTML', exact: true }).click()
+    const sheet = page.getByRole('dialog', { name: 'HTML', exact: true })
+    const resource = sheet.getByRole('button', {
+      name: 'MDN: Structuring content with HTML',
+    })
+    await expect(sheet.getByRole('table')).toBeVisible()
+    await expect(sheet.locator('pre code')).toContainText(
+      '<h1>My first page</h1>',
+    )
+    await expect(sheet.locator('.topic-content h1')).toHaveCount(0)
+    await expect(sheet.locator('.topic-content a[href]')).toHaveCount(0)
+    await resource.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath('topic-reading.png') })
+
+    await resource.click({ modifiers: ['ControlOrMeta'] })
+    const confirmation = page.getByRole('alertdialog', {
+      name: 'Open external resource?',
+    })
+    await expect(confirmation).toBeVisible()
+    await expect(
+      confirmation.getByText(
+        'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content',
+        { exact: true },
+      ),
+    ).toBeVisible()
+    expect(context.pages()).toHaveLength(1)
+    expect(
+      await confirmation.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true)
+    await expect(confirmation).toHaveCSS('opacity', '1')
+    await page.screenshot({
+      path: testInfo.outputPath('resource-confirmation.png'),
+      animations: 'disabled',
+    })
+    await confirmation
+      .getByRole('button', { name: 'Cancel', exact: true })
+      .click()
+    await expect(confirmation).toBeHidden()
+    await expect(sheet).toBeVisible()
+    await expect(resource).toBeFocused()
+    expect(context.pages()).toHaveLength(1)
+
+    await resource.click({ button: 'middle' })
+    expect(context.pages()).toHaveLength(1)
+    await expect(confirmation).toBeHidden()
+
+    await resource.press('Enter')
+    await expect(confirmation).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(confirmation).toBeHidden()
+    await expect(sheet).toBeVisible()
+
+    await resource.click()
+    const opened = context.waitForEvent('page')
+    await confirmation
+      .getByRole('button', { name: 'Continue', exact: true })
+      .click()
+    const destination = await opened
+    await destination.waitForLoadState()
+    expect(destination.url()).toBe(
+      'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content',
+    )
+    expect(
+      await destination.evaluate(
+        () => window.opener === null && document.referrer === '',
+      ),
+    ).toBe(true)
+    await destination.close()
+    await expect(confirmation).toBeHidden()
+    await expect(sheet).toBeVisible()
   })
 
   test(`shows and dismisses node details at ${viewport.width}px`, async ({

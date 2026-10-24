@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react'
 
+import { TopicContent } from '@/components/roadmap/topic-content'
 import {
   Sheet,
   SheetContent,
@@ -48,6 +49,7 @@ export function RoadmapNodeCard({ node }: { node: PositionedNode }) {
           <SheetTitle>{node.title}</SheetTitle>
           <SheetDescription>{node.description}</SheetDescription>
         </SheetHeader>
+        {node.content && <TopicContent content={node.content} />}
       </SheetContent>
     </Sheet>
   )

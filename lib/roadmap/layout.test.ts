@@ -632,22 +632,41 @@ describe('layoutRoadmap', () => {
     }
   })
 
-  it('extends JavaScript to React so Auth and testing branches have clear space', () => {
+  it('keeps the frontend core path and topic branches clear', () => {
     const layout = layoutRoadmap(frontendRoadmap)
     const positions = new Map(
       layout.nodes.map(({ id, position }) => [id, position]),
     )
 
     expectClearLayout(layout)
-    expect(positions.get('javascript')).toEqual({ column: 0, row: 2 })
-    expect(positions.get('react')).toEqual({ column: 0, row: 4 })
-    expect(positions.get('typescript')).toEqual({ column: 1, row: 2 })
-    expect(positions.get('auth')).toEqual({ column: 1, row: 3 })
-    expect(positions.get('javascript-testing')).toEqual({ column: -1, row: 2 })
-    expect(positions.get('testing-fundamentals')).toEqual({
-      column: -1,
-      row: 3,
-    })
+    const core = [
+      'web-foundations',
+      'html',
+      'css',
+      'javascript',
+      'typescript',
+      'react',
+      'react-testing',
+      'performance',
+      'deployment',
+    ]
+    for (const [index, id] of core.entries()) {
+      expect(positions.get(id)?.column).toBe(0)
+      if (index > 0) {
+        expect(positions.get(id)!.row).toBeGreaterThan(
+          positions.get(core[index - 1])!.row,
+        )
+      }
+    }
+    expect(positions.get('accessibility')!.column).toBeLessThan(
+      positions.get('html')!.column,
+    )
+    expect(positions.get('responsive-design')!.column).toBeGreaterThan(
+      positions.get('css')!.column,
+    )
+    expect(positions.get('auth')!.column).toBeGreaterThan(
+      positions.get('nextjs')!.column,
+    )
   })
 })
 

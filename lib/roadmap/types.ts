@@ -1,3 +1,5 @@
+import type { JSONContent } from '@tiptap/core'
+
 export type Orientation = 'up' | 'right' | 'down' | 'left'
 export type ConnectionType = 'required' | 'optional'
 
@@ -10,6 +12,7 @@ export type RoadmapNode = {
   id: string
   title: string
   description: string
+  content?: JSONContent
   next?: {
     required?: RoadmapConnection
     optional?: RoadmapConnection | RoadmapConnection[]
