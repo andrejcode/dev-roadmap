@@ -2,6 +2,10 @@
 
 DevRoadmap is an application for sharing and tracking your progress in learning development skills with others.
 
+## Roadmap navigation
+
+Use the toolbar to zoom from 50% to 200% in 25% steps or reset to 100%. Zoom preserves the center of the current view where scrolling allows. Cards adapt to the screen size independently of zoom, while the toolbar and node detail sheets stay at their normal size.
+
 ## Roadmap rules
 
 Roadmaps form a tree rooted at `entryNodeId`. The entry has no incoming connection, and every other node has exactly one. All nodes must be reachable from the entry, with unique IDs and existing connection targets.
@@ -20,4 +24,4 @@ Layout coverage must remain at or above 98% for statements and lines, 95% for br
 
 Run `pnpm test:e2e` for browser tests. Playwright builds the app and starts its own production server at http://127.0.0.1:3100, leaving the development server on port 3000 running. Port 3100 must be free. The test server stops automatically when the tests finish.
 
-Browser tests verify rendered geometry and edge attachments, then open every roadmap node's details at desktop and mobile sizes.
+Browser tests verify rendered geometry and edge attachments at multiple zoom levels, zoom limits and viewport anchoring, and node details across desktop, tablet, and mobile sizes.

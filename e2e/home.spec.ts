@@ -67,6 +67,105 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 320, height: 568 },
 ]) {
+  test(`zooms around the current view and keeps details unscaled at ${viewport.width}px`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize(viewport)
+    await page.goto('/')
+
+    const controls = page.getByRole('group', { name: 'Roadmap zoom controls' })
+    const zoomIn = controls.getByRole('button', {
+      name: 'Zoom in',
+      exact: true,
+    })
+    const zoomOut = controls.getByRole('button', {
+      name: 'Zoom out',
+      exact: true,
+    })
+    const reset = controls.getByRole('button', { name: 'Reset zoom' })
+    const level = controls.getByLabel('Zoom level')
+    const scroller = page.getByRole('region', { name: 'Roadmap canvas' })
+    const card = page.locator('main article').first()
+    const initialCard = (await card.boundingBox())!
+    const initialControls = (await controls.boundingBox())!
+
+    await scroller.evaluate((element) => {
+      element.scrollLeft = (element.scrollWidth - element.clientWidth) * 0.45
+      element.scrollTop = (element.scrollHeight - element.clientHeight) * 0.45
+    })
+    const center = async () =>
+      scroller.evaluate((element) => {
+        const viewportBounds = element.getBoundingClientRect()
+        const canvasBounds = element
+          .querySelector('.roadmap-canvas')!
+          .getBoundingClientRect()
+        return {
+          x:
+            (viewportBounds.left +
+              element.clientWidth / 2 -
+              canvasBounds.left) /
+            canvasBounds.width,
+          y:
+            (viewportBounds.top + element.clientHeight / 2 - canvasBounds.top) /
+            canvasBounds.height,
+        }
+      })
+    const before = await center()
+
+    await zoomIn.click()
+    await expect(level).toHaveText('125%')
+    const zoomedCard = (await card.boundingBox())!
+    expect(zoomedCard.width).toBeCloseTo(initialCard.width * 1.25, 1)
+    expect(zoomedCard.height).toBeCloseTo(initialCard.height * 1.25, 1)
+    const after = await center()
+    expect(after.x).toBeCloseTo(before.x, 2)
+    expect(after.y).toBeCloseTo(before.y, 2)
+    const zoomedControls = (await controls.boundingBox())!
+    expect(zoomedControls.height).toBe(initialControls.height)
+    expect(zoomedControls.width).toBe(initialControls.width)
+
+    await page.getByRole('button', { name: 'HTML', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'HTML', exact: true })
+    await expect(dialog).toBeVisible()
+    await expect
+      .poll(async () => {
+        const bounds = await dialog.boundingBox()
+        return bounds && Math.round(bounds.width)
+      })
+      .toBe(viewport.width >= 1024 ? 448 : viewport.width)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+
+    await reset.click()
+    await expect(level).toHaveText('100%')
+    await expect(reset).toBeDisabled()
+    await zoomOut.focus()
+    await page.keyboard.press('Enter')
+    await expect(level).toHaveText('75%')
+    await zoomOut.click()
+    await expect(level).toHaveText('50%')
+    await expect(zoomOut).toBeDisabled()
+    expect((await card.boundingBox())!.width).toBeCloseTo(
+      initialCard.width / 2,
+      1,
+    )
+
+    for (let step = 0; step < 6; step += 1) {
+      await zoomIn.click()
+    }
+    await expect(level).toHaveText('200%')
+    await expect(zoomIn).toBeDisabled()
+    expect((await card.boundingBox())!.width).toBeCloseTo(
+      initialCard.width * 2,
+      1,
+    )
+    await expect(controls).toBeInViewport()
+    await page.screenshot({ path: testInfo.outputPath('roadmap-zoomed.png') })
+    await reset.click()
+    await expect(level).toHaveText('100%')
+    expect((await card.boundingBox())!.width).toBe(initialCard.width)
+  })
+
   test(`keeps roadmap nodes and edges clear at ${viewport.width}px`, async ({
     page,
   }, testInfo) => {
@@ -76,77 +175,96 @@ for (const viewport of [
       page.getByRole('button', { name: 'HTML', exact: true }),
     ).toBeVisible()
 
-    const { nodes, edges } = await page.getByRole('main').evaluate((main) => {
-      const bounds = (selector: string) =>
-        Array.from(main.querySelectorAll(selector), (element) => {
-          const rectangle = element.getBoundingClientRect()
-          return {
-            left: rectangle.left,
-            right: rectangle.right,
-            top: rectangle.top,
-            bottom: rectangle.bottom,
-          }
-        })
-      return { nodes: bounds('article'), edges: bounds('svg line') }
-    })
+    let zoom = 100
+    for (const level of [100, 125, 200, 50, 100]) {
+      while (zoom !== level) {
+        await page
+          .getByRole('button', {
+            name: zoom < level ? 'Zoom in' : 'Zoom out',
+            exact: true,
+          })
+          .click()
+        zoom += zoom < level ? 25 : -25
+      }
 
-    expect(nodes).toHaveLength(frontendRoadmap.nodes.length)
-    expect(edges).toHaveLength(nodes.length - 1)
-    for (const [index, first] of nodes.entries()) {
-      for (const second of nodes.slice(index + 1)) {
+      const { nodes, edges } = await page.getByRole('main').evaluate((main) => {
+        const bounds = (selector: string) =>
+          Array.from(main.querySelectorAll(selector), (element) => {
+            const rectangle = element.getBoundingClientRect()
+            return {
+              left: rectangle.left,
+              right: rectangle.right,
+              top: rectangle.top,
+              bottom: rectangle.bottom,
+            }
+          })
+        return {
+          nodes: bounds('article'),
+          edges: bounds('.roadmap-canvas svg line'),
+        }
+      })
+
+      expect(nodes).toHaveLength(frontendRoadmap.nodes.length)
+      expect(edges).toHaveLength(nodes.length - 1)
+      for (const [index, first] of nodes.entries()) {
+        for (const second of nodes.slice(index + 1)) {
+          expect(
+            first.left < second.right &&
+              first.right > second.left &&
+              first.top < second.bottom &&
+              first.bottom > second.top,
+            `Nodes ${index} and ${nodes.indexOf(second)} overlap`,
+          ).toBe(false)
+        }
+      }
+
+      for (const [index, edge] of edges.entries()) {
+        expect(edge.left === edge.right || edge.top === edge.bottom).toBe(true)
+        const horizontal = edge.top === edge.bottom
         expect(
-          first.left < second.right &&
-            first.right > second.left &&
-            first.top < second.bottom &&
-            first.bottom > second.top,
-          `Nodes ${index} and ${nodes.indexOf(second)} overlap`,
-        ).toBe(false)
+          nodes.filter((other) =>
+            horizontal
+              ? edge.left === other.right &&
+                edge.top === (other.top + other.bottom) / 2
+              : edge.top === other.bottom &&
+                edge.left === (other.left + other.right) / 2,
+          ),
+          `Edge ${index} does not start at a card side center`,
+        ).toHaveLength(1)
+        expect(
+          nodes.filter((other) =>
+            horizontal
+              ? edge.right === other.left &&
+                edge.top === (other.top + other.bottom) / 2
+              : edge.bottom === other.top &&
+                edge.left === (other.left + other.right) / 2,
+          ),
+          `Edge ${index} does not end at a card side center`,
+        ).toHaveLength(1)
+        for (const other of nodes) {
+          expect(
+            edge.left < other.right &&
+              edge.right > other.left &&
+              edge.top < other.bottom &&
+              edge.bottom > other.top,
+            `Edge ${index} passes through node ${nodes.indexOf(other)}`,
+          ).toBe(false)
+        }
+        for (const other of edges.slice(index + 1)) {
+          expect(
+            edge.left <= other.right &&
+              edge.right >= other.left &&
+              edge.top <= other.bottom &&
+              edge.bottom >= other.top,
+            `Edges ${index} and ${edges.indexOf(other)} intersect`,
+          ).toBe(false)
+        }
+      }
+
+      if (level === 125) {
+        await page.screenshot({ path: testInfo.outputPath('roadmap-125.png') })
       }
     }
-
-    for (const [index, edge] of edges.entries()) {
-      expect(edge.left === edge.right || edge.top === edge.bottom).toBe(true)
-      const horizontal = edge.top === edge.bottom
-      expect(
-        nodes.filter((other) =>
-          horizontal
-            ? edge.left === other.right &&
-              edge.top === (other.top + other.bottom) / 2
-            : edge.top === other.bottom &&
-              edge.left === (other.left + other.right) / 2,
-        ),
-        `Edge ${index} does not start at a card side center`,
-      ).toHaveLength(1)
-      expect(
-        nodes.filter((other) =>
-          horizontal
-            ? edge.right === other.left &&
-              edge.top === (other.top + other.bottom) / 2
-            : edge.bottom === other.top &&
-              edge.left === (other.left + other.right) / 2,
-        ),
-        `Edge ${index} does not end at a card side center`,
-      ).toHaveLength(1)
-      for (const other of nodes) {
-        expect(
-          edge.left < other.right &&
-            edge.right > other.left &&
-            edge.top < other.bottom &&
-            edge.bottom > other.top,
-          `Edge ${index} passes through node ${nodes.indexOf(other)}`,
-        ).toBe(false)
-      }
-      for (const other of edges.slice(index + 1)) {
-        expect(
-          edge.left <= other.right &&
-            edge.right >= other.left &&
-            edge.top <= other.bottom &&
-            edge.bottom >= other.top,
-          `Edges ${index} and ${edges.indexOf(other)} intersect`,
-        ).toBe(false)
-      }
-    }
-
     await page.screenshot({ path: testInfo.outputPath('roadmap.png') })
   })
 

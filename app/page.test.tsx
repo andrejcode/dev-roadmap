@@ -131,4 +131,42 @@ describe('Home', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
     )
   })
+
+  it('zooms the roadmap within limits and resets to the default level', () => {
+    render(<Home />)
+
+    const controls = within(
+      screen.getByRole('group', { name: 'Roadmap zoom controls' }),
+    )
+    const zoomIn = controls.getByRole('button', { name: 'Zoom in' })
+    const zoomOut = controls.getByRole('button', { name: 'Zoom out' })
+    const reset = controls.getByRole('button', { name: 'Reset zoom' })
+    const level = controls.getByLabelText('Zoom level')
+
+    expect(level).toHaveTextContent('100%')
+    expect(reset).toBeDisabled()
+    fireEvent.click(zoomIn)
+    expect(level).toHaveTextContent('125%')
+    expect(reset).toBeEnabled()
+    fireEvent.click(zoomOut)
+    expect(level).toHaveTextContent('100%')
+
+    for (let index = 0; index < 8; index += 1) {
+      fireEvent.click(zoomOut)
+    }
+    expect(level).toHaveTextContent('50%')
+    expect(zoomOut).toBeDisabled()
+    expect(zoomIn).toBeEnabled()
+
+    for (let index = 0; index < 10; index += 1) {
+      fireEvent.click(zoomIn)
+    }
+    expect(level).toHaveTextContent('200%')
+    expect(zoomIn).toBeDisabled()
+    expect(zoomOut).toBeEnabled()
+
+    fireEvent.click(reset)
+    expect(level).toHaveTextContent('100%')
+    expect(reset).toBeDisabled()
+  })
 })
