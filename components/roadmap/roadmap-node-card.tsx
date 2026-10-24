@@ -18,7 +18,7 @@ export function RoadmapNodeCard({ node }: { node: PositionedNode }) {
   return (
     <Sheet>
       <article
-        className="absolute rounded-lg border bg-card text-card-foreground shadow-xs"
+        className="absolute rounded-lg border bg-card text-card-foreground shadow-xs select-none"
         style={
           {
             '--roadmap-node-x': `${node.x}px`,

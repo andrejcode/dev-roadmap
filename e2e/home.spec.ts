@@ -84,6 +84,7 @@ for (const viewport of [
     })
     const reset = controls.getByRole('button', { name: 'Reset zoom' })
     const level = controls.getByLabel('Zoom level')
+    await expect(level).toHaveCSS('user-select', 'none')
     const scroller = page.getByRole('region', { name: 'Roadmap canvas' })
     const card = page.locator('main article').first()
     const initialCard = (await card.boundingBox())!
@@ -279,10 +280,15 @@ for (const viewport of [
         name: node.title,
         exact: true,
       })
+      await expect(trigger).toHaveCSS('user-select', 'none')
       await trigger.click()
       const dialog = page.getByRole('dialog', { name: node.title, exact: true })
       await expect(dialog).toBeVisible()
       await expect(dialog).toHaveAccessibleDescription(node.description)
+      await expect(dialog.locator('.topic-content p').first()).not.toHaveCSS(
+        'user-select',
+        'none',
+      )
       await expect(
         dialog.getByRole('heading', { name: 'Learning goals', exact: true }),
       ).toBeVisible()

@@ -82,7 +82,7 @@ export function RoadmapCanvas({ roadmap }: { roadmap: RoadmapDefinition }) {
         <output
           aria-label="Zoom level"
           aria-live="polite"
-          className="w-14 shrink-0 text-center text-sm tabular-nums"
+          className="w-14 shrink-0 text-center text-sm tabular-nums select-none"
         >
           {zoom}%
         </output>
