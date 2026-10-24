@@ -127,3 +127,19 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .roadmap-canvas {
+    --roadmap-scale-x: 0.6875;
+    --roadmap-scale-y: 0.875;
+
+    @media (width >= 40rem) {
+      --roadmap-scale-x: 0.875;
+      --roadmap-scale-y: 1;
+    }
+
+    @media (width >= 64rem) {
+      --roadmap-scale-x: 1;
+    }
+  }
+}

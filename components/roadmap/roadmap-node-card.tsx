@@ -1,5 +1,7 @@
 'use client'
 
+import type { CSSProperties } from 'react'
+
 import {
   Sheet,
   SheetContent,
@@ -16,17 +18,21 @@ export function RoadmapNodeCard({ node }: { node: PositionedNode }) {
     <Sheet>
       <article
         className="absolute rounded-lg border bg-card text-card-foreground shadow-xs"
-        style={{
-          left: node.x,
-          top: node.y,
-          width: NODE_WIDTH,
-          height: NODE_HEIGHT,
-        }}
+        style={
+          {
+            '--roadmap-node-x': `${node.x}px`,
+            '--roadmap-node-y': `${node.y}px`,
+            left: 'calc(var(--roadmap-node-x) * var(--roadmap-scale-x))',
+            top: 'calc(var(--roadmap-node-y) * var(--roadmap-scale-y))',
+            width: `calc(${NODE_WIDTH}px * var(--roadmap-scale-x))`,
+            height: `calc(${NODE_HEIGHT}px * var(--roadmap-scale-y))`,
+          } as CSSProperties
+        }
       >
         <h2 className="size-full min-w-0 text-lg leading-tight font-medium wrap-anywhere">
           <SheetTrigger
             title={node.title}
-            className="flex size-full cursor-pointer items-center justify-center overflow-hidden rounded-lg px-4 py-2 text-center transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            className="flex size-full cursor-pointer items-center justify-center overflow-hidden rounded-lg px-3 py-1 text-center transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-4 sm:py-2"
           >
             <span className="line-clamp-2 min-w-0 max-w-full">
               {node.title}

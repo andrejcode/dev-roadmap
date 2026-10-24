@@ -8,12 +8,17 @@ export function RoadmapCanvas({ roadmap }: { roadmap: RoadmapDefinition }) {
   return (
     <div className="flex min-h-0 flex-1 overflow-auto rounded-lg border border-border">
       <div
-        className="relative m-auto shrink-0"
-        style={{ width: layout.width, height: layout.height }}
+        className="roadmap-canvas relative m-auto shrink-0"
+        style={{
+          width: `calc(${layout.width}px * var(--roadmap-scale-x))`,
+          height: `calc(${layout.height}px * var(--roadmap-scale-y))`,
+        }}
       >
         <svg
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 size-full"
+          viewBox={`0 0 ${layout.width} ${layout.height}`}
+          preserveAspectRatio="none"
         >
           {layout.edges.map((edge) => (
             <line
@@ -24,6 +29,7 @@ export function RoadmapCanvas({ roadmap }: { roadmap: RoadmapDefinition }) {
               strokeDasharray={edge.type === 'optional' ? '7 7' : undefined}
               strokeLinecap="round"
               strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
             />
           ))}
         </svg>

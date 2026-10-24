@@ -12,6 +12,12 @@ import Home from './page'
 
 afterEach(cleanup)
 
+function coordinate(node: HTMLElement, axis: 'x' | 'y') {
+  return Number.parseFloat(
+    node.style.getPropertyValue(`--roadmap-node-${axis}`),
+  )
+}
+
 describe('Home', () => {
   it('renders the roadmap title and description as page content', () => {
     const { container } = render(<Home />)
@@ -67,10 +73,10 @@ describe('Home', () => {
     const reactNode = react.closest('article')!
     const testingNode = testing.closest('article')!
 
-    expect(Number.parseFloat(testingNode.style.left)).toBeLessThan(
-      Number.parseFloat(reactNode.style.left),
+    expect(coordinate(testingNode, 'x')).toBeLessThan(
+      coordinate(reactNode, 'x'),
     )
-    expect(testingNode.style.top).toBe(reactNode.style.top)
+    expect(coordinate(testingNode, 'y')).toBe(coordinate(reactNode, 'y'))
 
     const javascriptNode = view
       .getByRole('heading', { level: 2, name: 'JavaScript' })
@@ -82,14 +88,16 @@ describe('Home', () => {
       .getByRole('heading', { level: 2, name: 'Testing Fundamentals' })
       .closest('article')!
 
-    expect(Number.parseFloat(javascriptTestingNode.style.left)).toBeLessThan(
-      Number.parseFloat(javascriptNode.style.left),
+    expect(coordinate(javascriptTestingNode, 'x')).toBeLessThan(
+      coordinate(javascriptNode, 'x'),
     )
-    expect(javascriptTestingNode.style.top).toBe(javascriptNode.style.top)
-    expect(Number.parseFloat(fundamentalsNode.style.top)).toBeLessThan(
-      Number.parseFloat(testingNode.style.top),
+    expect(coordinate(javascriptTestingNode, 'y')).toBe(
+      coordinate(javascriptNode, 'y'),
     )
-    expect(fundamentalsNode.style.left).toBe(testingNode.style.left)
+    expect(coordinate(fundamentalsNode, 'y')).toBeLessThan(
+      coordinate(testingNode, 'y'),
+    )
+    expect(coordinate(fundamentalsNode, 'x')).toBe(coordinate(testingNode, 'x'))
 
     expect(container.querySelectorAll('[stroke-dasharray="7 7"]')).toHaveLength(
       7,

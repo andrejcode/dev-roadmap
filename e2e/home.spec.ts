@@ -14,9 +14,58 @@ test('shows the product heading', async ({ page }) => {
   ).toBeVisible()
 })
 
+test('resizes roadmap cards with the viewport while keeping labels readable', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  for (const viewport of [
+    { width: 1440, height: 900, nodeWidth: 256, nodeHeight: 64 },
+    { width: 768, height: 1024, nodeWidth: 224, nodeHeight: 64 },
+    { width: 390, height: 844, nodeWidth: 176, nodeHeight: 56 },
+    { width: 320, height: 568, nodeWidth: 176, nodeHeight: 56 },
+    { width: 1440, height: 900, nodeWidth: 256, nodeHeight: 64 },
+  ]) {
+    await page.setViewportSize({
+      width: viewport.width,
+      height: viewport.height,
+    })
+    const cards = await page.locator('main article').evaluateAll((articles) =>
+      articles.map((article) => {
+        const bounds = article.getBoundingClientRect()
+        const trigger = article.querySelector('button')!
+        const label = trigger.querySelector('span')!
+        return {
+          width: bounds.width,
+          height: bounds.height,
+          triggerHeight: trigger.getBoundingClientRect().height,
+          labelFits:
+            label.scrollWidth <= label.clientWidth &&
+            label.scrollHeight <= label.clientHeight,
+          fontSize: getComputedStyle(label).fontSize,
+        }
+      }),
+    )
+
+    expect(cards).toHaveLength(frontendRoadmap.nodes.length)
+    for (const card of cards) {
+      expect(card.width).toBe(viewport.nodeWidth)
+      expect(card.height).toBe(viewport.nodeHeight)
+      expect(card.triggerHeight).toBeGreaterThanOrEqual(44)
+      expect(card.labelFits).toBe(true)
+      expect(card.fontSize).toBe('18px')
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(viewport.width)
+  }
+})
+
 for (const viewport of [
   { width: 1440, height: 900 },
+  { width: 768, height: 1024 },
   { width: 390, height: 844 },
+  { width: 320, height: 568 },
 ]) {
   test(`keeps roadmap nodes and edges clear at ${viewport.width}px`, async ({
     page,
